@@ -1,0 +1,584 @@
+----------------------- lib/core/secrets/app_secrets.dart -----------------------
+class AppSecrets {
+  static const supabasUrl = 'https://pybfozmoikwuzzlzkbtw.supabase.co';
+  static const supabasAnonKey =
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5YmZvem1vaWt3dXp6bHprYnR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzM4MjgxNTAsImV4cCI6MjA0OTQwNDE1MH0.HAruvCT62LaqEiPcDTyaI4uie9K7OZGNk9n19URRSEc';
+}
+----------------------- lib/core/theme/app_pallete.dart -----------------------
+import 'package:flutter/material.dart';
+
+class AppPallete {
+  static const Color backgroundColor = Color.fromRGBO(24, 24, 32, 1);
+  static const Color gradient1 = Color.fromRGBO(187, 63, 221, 1);
+  static const Color gradient2 = Color.fromRGBO(251, 109, 169, 1);
+  static const Color gradient3 = Color.fromRGBO(255, 159, 124, 1);
+  static const Color borderColor = Color.fromRGBO(52, 51, 67, 1);
+  static const Color whiteColor = Colors.white;
+  static const Color greyColor = Colors.grey;
+  static const Color errorColor = Colors.redAccent;
+  static const Color transparentColor = Colors.transparent;
+}----------------------- lib/core/theme/theme.dart -----------------------
+// ignore_for_file: prefer_const_constructors
+
+import 'package:clean/core/theme/app_pallete.dart';
+import 'package:flutter/material.dart';
+
+class AppTheme {
+  static OutlineInputBorder border(Color color) => OutlineInputBorder(
+        borderSide: BorderSide(
+          color: color,
+          width: 3,
+        ),
+        borderRadius: BorderRadius.circular(10),
+      );
+
+  static final darkThemeMode = ThemeData.dark().copyWith(
+    scaffoldBackgroundColor: AppPallete.backgroundColor,
+    appBarTheme: AppBarTheme(backgroundColor: AppPallete.backgroundColor),
+    inputDecorationTheme: InputDecorationTheme(
+      contentPadding: EdgeInsets.all(27),
+      focusedBorder: border(AppPallete.gradient1),
+      enabledBorder: border(AppPallete.borderColor),
+    ),
+  );
+}
+----------------------- lib/core/usecase/usecase.dart -----------------------
+import 'package:clean/core/error/failures.dart';
+import 'package:fpdart/fpdart.dart';
+
+abstract interface class UseCase<SuccessType, Params> {
+Future<Either<Failure, SuccessType>> call(Params params); 
+
+}----------------------- lib/core/error/exception.dart -----------------------
+class ServerException implements Exception {
+  final String error;
+
+  ServerException(this.error);
+}
+----------------------- lib/core/error/failures.dart -----------------------
+class Failure {
+  final String error;
+
+  Failure(this.error);
+}
+----------------------- lib/features/auth/data/repository/auth_repository_impl.dart -----------------------
+import 'package:clean/core/error/exception.dart';
+import 'package:clean/core/error/failures.dart';
+import 'package:clean/features/auth/data/data_sources/auth_remote_data_source.dart';
+import 'package:clean/features/auth/domain/repository/auth_repository.dart';
+import 'package:fpdart/fpdart.dart';
+
+class AuthRepositoryImpl implements AuthRepository {
+  final AuthRemoteDataSource remoteDataSource;
+
+  AuthRepositoryImpl({required this.remoteDataSource});
+
+  @override
+  Future<Either<Failure, String>> signInWithEmailAndPassword({
+    required String email,
+    required String password,
+  }) {
+    // TODO: implement signInWithEmailAndPassword
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Either<Failure, String>> signUpWithEmailAndPassword({
+    required String name,
+    required String email,
+    required String password,
+  }) async {
+    try {
+      final userId = await remoteDataSource.signUpWithEmailAndPassword(
+        name: name,
+        password: password,
+        email: email,
+      );
+      return right(userId);
+    } on ServerException catch (e) {
+      return left(Failure(e.error));
+    }
+  }
+}
+----------------------- lib/features/auth/data/data_sources/auth_remote_data_source.dart -----------------------
+import 'package:clean/core/error/exception.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+abstract interface class AuthRemoteDataSource {
+  Future<String> signUpWithEmailAndPassword({
+    required String name,
+    required String password,
+    required String email,
+  });
+  Future<String> signInWithEmailAndPassword({
+    required String password,
+    required String email,
+  });
+}
+
+class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
+  final SupabaseClient supabaseClient;
+
+  AuthRemoteDataSourceImpl({required this.supabaseClient});
+
+  @override
+  Future<String> signInWithEmailAndPassword({
+    required String password,
+    required String email,
+  }) {
+    // TODO: implement logInWithEmailAndPassword
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<String> signUpWithEmailAndPassword({
+    required String name,
+    required String password,
+    required String email,
+  }) async {
+    try {
+      final response = await supabaseClient.auth.signUp(
+        password: password,
+        email: email,
+        data: {'name': name},
+      );
+
+      if (response.user == null) {
+        throw ServerException('User is Null');
+      }
+      return response.user!.id;
+    } catch (e) {
+      throw ServerException(e.toString());
+    }
+  }
+}
+----------------------- lib/features/auth/domain/repository/auth_repository.dart -----------------------
+import 'package:clean/core/error/failures.dart';
+import 'package:fpdart/fpdart.dart';
+
+abstract interface class AuthRepository {
+  Future<Either<Failure, String>> signUpWithEmailAndPassword({
+    required String name,
+    required String email,
+    required String password,
+  });
+  Future<Either<Failure, String>> signInWithEmailAndPassword({
+    required String email,
+    required String password,
+  });
+}
+----------------------- lib/features/auth/domain/usecase/user_sign_up.dart -----------------------
+import 'package:clean/core/error/failures.dart';
+import 'package:clean/core/usecase/usecase.dart';
+import 'package:clean/features/auth/domain/repository/auth_repository.dart';
+import 'package:fpdart/fpdart.dart';
+
+class UserSignUp implements UseCase<String, UserSignUpParams> {
+  final AuthRepository authRepository;
+
+  UserSignUp({required this.authRepository});
+
+  @override
+  Future<Either<Failure, String>> call(UserSignUpParams params) async {
+    return await authRepository.signUpWithEmailAndPassword(
+      name: params.name,
+      email: params.email,
+      password: params.password,
+    );
+  }
+}
+ 
+class UserSignUpParams {
+  final String email;
+  final String name;
+  final String password;
+
+  UserSignUpParams({
+    required this.email,
+    required this.name,
+    required this.password,
+  });
+}
+----------------------- lib/features/auth/presentation/pages/signup_page.dart -----------------------
+import 'package:clean/core/theme/app_pallete.dart';
+import 'package:clean/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:clean/features/auth/presentation/widgets/auth_field.dart';
+import 'package:clean/features/auth/presentation/widgets/auth_gradient_button.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+class SignUpPage extends StatefulWidget {
+  const SignUpPage({super.key});
+  static route() => MaterialPageRoute(builder: (context) => const SignUpPage());
+  @override
+  State<SignUpPage> createState() => _SignUpPageState();
+}
+
+class _SignUpPageState extends State<SignUpPage> {
+  final emailController = TextEditingController();
+  final nameController = TextEditingController();
+  final passwordController = TextEditingController();
+  final formKey = GlobalKey<FormState>();
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    nameController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(),
+      body: Padding(
+        padding: const EdgeInsets.all(15.0),
+        child: Form(
+          key: formKey,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                'Sign up.',
+                style: TextStyle(
+                  fontSize: 50,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 30),
+              AuthField(
+                hintText: 'Name',
+                controller: nameController,
+              ),
+              const SizedBox(height: 15),
+              AuthField(
+                hintText: 'Email',
+                controller: emailController,
+              ),
+              const SizedBox(height: 15),
+              AuthField(
+                hintText: 'Password',
+                controller: passwordController,
+                obscureText: true,
+              ),
+              const SizedBox(height: 20),
+              AuthGradientButton(
+                buttonText: 'Sign up',
+                onPressed: () {
+                  context.read<AuthBloc>().add(AuthSignUp(
+                        email: emailController.text,
+                        name: nameController.text,
+                        password: passwordController.text,
+                      ));
+                },
+              ),
+              const SizedBox(
+                height: 20,
+              ),
+              GestureDetector(
+                onTap: () {
+                  Navigator.pop(context);
+                },
+                child: RichText(
+                  text: TextSpan(
+                    text: 'Already  have an account? ',
+                    style: Theme.of(context).textTheme.titleMedium,
+                    children: [
+                      TextSpan(
+                        text: 'Sign in',
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: AppPallete.gradient1,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                      )
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+----------------------- lib/features/auth/presentation/pages/signin_page.dart -----------------------
+import 'package:clean/core/theme/app_pallete.dart';
+import 'package:clean/features/auth/presentation/pages/signup_page.dart';
+import 'package:clean/features/auth/presentation/widgets/auth_field.dart';
+import 'package:clean/features/auth/presentation/widgets/auth_gradient_button.dart';
+import 'package:flutter/material.dart';
+
+class SignInPage extends StatefulWidget {
+  const SignInPage({super.key});
+  static route() => MaterialPageRoute(builder: (context) => const SignInPage());
+  @override
+  State<SignInPage> createState() => _SignInPageState();
+}
+
+class _SignInPageState extends State<SignInPage> {
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+  final formKey = GlobalKey<FormState>();
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Padding(
+        padding: const EdgeInsets.all(15.0),
+        child: Form(
+          key: formKey,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                'Sign in.',
+                style: TextStyle(
+                  fontSize: 50,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              AuthField(
+                hintText: 'Email',
+                controller: emailController,
+              ),
+              const SizedBox(height: 15),
+              AuthField(
+                hintText: 'Password',
+                controller: passwordController,
+                obscureText: true,
+              ),
+              const SizedBox(height: 20),
+              AuthGradientButton(
+                buttonText: 'Sign in',
+                onPressed: () {},
+              ),
+              const SizedBox(
+                height: 20,
+              ),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(context, SignUpPage.route());
+                },
+                child: RichText(
+                  text: TextSpan(
+                    text: 'Don\'t have an account? ',
+                    style: Theme.of(context).textTheme.titleMedium,
+                    children: [
+                      TextSpan(
+                        text: 'Sign up',
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: AppPallete.gradient1,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                      )
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+----------------------- lib/features/auth/presentation/widgets/auth_gradient_button.dart -----------------------
+import 'package:clean/core/theme/app_pallete.dart';
+import 'package:flutter/material.dart';
+
+class AuthGradientButton extends StatelessWidget {
+  final String buttonText;
+  final VoidCallback onPressed;
+
+  const AuthGradientButton(
+      {super.key, required this.buttonText, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [
+            AppPallete.gradient1,
+            AppPallete.gradient2,
+            AppPallete.gradient3
+          ],
+          begin: Alignment.bottomLeft,
+          end: Alignment.topRight,
+        ),
+        borderRadius: BorderRadius.circular(7),
+      ),
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          fixedSize: const Size(395, 55),
+          backgroundColor: AppPallete.transparentColor,
+          shadowColor: AppPallete.transparentColor,
+        ),
+        child: Text(
+          buttonText,
+          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+        ),
+      ),
+    );
+  }
+}
+----------------------- lib/features/auth/presentation/widgets/auth_field.dart -----------------------
+import 'package:flutter/material.dart';
+
+class AuthField extends StatelessWidget {
+  final String hintText;
+  final TextEditingController controller;
+  final bool obscureText;
+  const AuthField(
+      {super.key,
+      required this.hintText,
+      required this.controller,
+      this.obscureText = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      decoration: InputDecoration(
+        hintText: hintText,
+      ),
+      obscureText: obscureText,
+    );
+  }
+}
+----------------------- lib/features/auth/presentation/bloc/auth_event.dart -----------------------
+part of 'auth_bloc.dart';
+
+@immutable
+sealed class AuthEvent {}
+
+class AuthSignUp extends AuthEvent {
+  final String email;
+  final String name;
+  final String password;
+
+  AuthSignUp({
+    required this.email,
+    required this.name,
+    required this.password,
+  });
+}
+----------------------- lib/features/auth/presentation/bloc/auth_bloc.dart -----------------------
+import 'package:clean/features/auth/domain/usecase/user_sign_up.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+part 'auth_event.dart';
+part 'auth_state.dart';
+
+class AuthBloc extends Bloc<AuthEvent, AuthState> {
+  final UserSignUp _userSignUp;
+
+  AuthBloc({required UserSignUp userSignUp})
+      : _userSignUp = userSignUp,
+        super(AuthInitial()) {
+    on<AuthSignUp>((event, emit) async {
+      final res = await _userSignUp(
+        UserSignUpParams(
+          email: event.email,
+          name: event.name,
+          password: event.password,
+        ),
+      );
+
+      res.fold(
+        (l) => emit(AuthFailure(l.error)),
+        (r) => emit(AuthSuccess(r)),
+      );
+    });
+  }
+}
+----------------------- lib/features/auth/presentation/bloc/auth_state.dart -----------------------
+part of 'auth_bloc.dart';
+
+@immutable
+sealed class AuthState {}
+
+final class AuthInitial extends AuthState {}
+
+final class AuthLoading extends AuthState {}
+
+final class AuthSuccess extends AuthState {
+  final String uId;
+
+  AuthSuccess(this.uId);
+}
+
+final class AuthFailure extends AuthState {
+  final String message;
+
+  AuthFailure(this.message);
+}
+----------------------- lib/main.dart -----------------------
+import 'package:clean/core/secrets/app_secrets.dart';
+import 'package:clean/core/theme/theme.dart';
+import 'package:clean/features/auth/data/data_sources/auth_remote_data_source.dart';
+import 'package:clean/features/auth/data/repository/auth_repository_impl.dart';
+import 'package:clean/features/auth/domain/usecase/user_sign_up.dart';
+import 'package:clean/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:clean/features/auth/presentation/pages/signin_page.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    final supabase = await Supabase.initialize(
+      anonKey: AppSecrets.supabasAnonKey,
+      url: AppSecrets.supabasUrl,
+    );
+
+    runApp(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider(
+            create: (_) => AuthBloc(
+              userSignUp: UserSignUp(
+                authRepository: AuthRepositoryImpl(
+                  remoteDataSource: AuthRemoteDataSourceImpl(
+                    supabaseClient: supabase.client,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+        child: const MyApp(),
+      ),
+    );
+  } catch (e) {
+    debugPrint('Supabase initialization failed: $e');
+  }
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Flutter Demo',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.darkThemeMode,
+      home: const SignInPage(),
+    );
+  }
+}

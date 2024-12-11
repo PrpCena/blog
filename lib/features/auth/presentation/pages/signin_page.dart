@@ -51,11 +51,14 @@ class _SignInPageState extends State<SignInPage> {
                 obscureText: true,
               ),
               const SizedBox(height: 20),
-              const AuthGradientButton(buttonText: 'Sign in'),
+              AuthGradientButton(
+                buttonText: 'Sign in',
+                onPressed: () {},
+              ),
               const SizedBox(
                 height: 20,
               ),
-              InkWell(
+              GestureDetector(
                 onTap: () {
                   Navigator.push(context, SignUpPage.route());
                 },
