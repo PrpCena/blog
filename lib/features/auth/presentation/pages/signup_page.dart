@@ -44,7 +44,7 @@ class _SignUpPageState extends State<SignUpPage> {
               case AuthSuccess():
                 break;
               case AuthFailure():
-                showSnackBar(context, state.message);
+                showSnackBar(context, state.error);
                 break;
             }
           },

@@ -14,3 +14,13 @@ class AuthSignUp extends AuthEvent {
     required this.password,
   });
 }
+
+class AuthSignIn extends AuthEvent {
+  final String email;
+  final String password;
+
+  AuthSignIn({
+    required this.email,
+    required this.password,
+  });
+}
