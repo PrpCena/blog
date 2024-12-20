@@ -1,4 +1,4 @@
-import 'package:clean/features/auth/domain/entities/my_user.dart';
+import 'package:clean/core/common/entities/my_user.dart';
 
 class MyUserModel extends MyUser {
   MyUserModel({
@@ -14,4 +14,14 @@ class MyUserModel extends MyUser {
       email: map['email'] ?? '',
     );
   }
+
+  MyUserModel copyWith({
+    String? id,
+    String? name,
+    String? email,
+  }) =>
+      MyUserModel(
+          id: id ?? this.id,
+          name: name ?? this.name,
+          email: email ?? this.email);
 }
