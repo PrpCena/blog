@@ -1,6 +1,8 @@
-import 'package:bloc/bloc.dart';
+
 import 'package:clean/core/common/entities/my_user.dart';
-import 'package:meta/meta.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
 
 part 'app_user_state.dart';
 

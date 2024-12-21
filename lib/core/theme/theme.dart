@@ -4,7 +4,7 @@ import 'package:clean/core/theme/app_pallete.dart';
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  static OutlineInputBorder border(Color color) => OutlineInputBorder(
+  static OutlineInputBorder _border(Color color) => OutlineInputBorder(
         borderSide: BorderSide(
           color: color,
           width: 3,
@@ -13,16 +13,17 @@ class AppTheme {
       );
 
   static final darkThemeMode = ThemeData.dark().copyWith(
-    scaffoldBackgroundColor: AppPallete.backgroundColor,
-    appBarTheme: AppBarTheme(backgroundColor: AppPallete.backgroundColor),
-    inputDecorationTheme: InputDecorationTheme(
-      contentPadding: EdgeInsets.all(27),
-      focusedBorder: border(AppPallete.gradient1),
-      enabledBorder: border(AppPallete.borderColor),
-    ),
-    chipTheme: ChipThemeData( 
-      color: MaterialStatePropertyAll(AppPallete.backgroundColor), 
-      side: BorderSide.none,
-    )
-  );
+      scaffoldBackgroundColor: AppPallete.backgroundColor,
+      appBarTheme: AppBarTheme(backgroundColor: AppPallete.backgroundColor),
+      inputDecorationTheme: InputDecorationTheme(
+        contentPadding: EdgeInsets.all(27),
+        border: _border(AppPallete.borderColor),
+        focusedBorder: _border(AppPallete.gradient1),
+        enabledBorder: _border(AppPallete.borderColor),
+        errorBorder: _border(AppPallete.errorColor),
+      ),
+      chipTheme: ChipThemeData(
+        color: WidgetStatePropertyAll(AppPallete.backgroundColor),
+        side: BorderSide.none,
+      ));
 }

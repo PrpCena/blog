@@ -1,5 +1,5 @@
 import 'package:clean/core/common/widgets/loader.dart';
-import 'package:clean/core/common/widgets/show_snackbar.dart';
+import 'package:clean/core/utils/show_snackbar.dart';
 import 'package:clean/core/theme/app_pallete.dart';
 import 'package:clean/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:clean/features/auth/presentation/widgets/auth_field.dart';

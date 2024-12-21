@@ -1,10 +1,117 @@
------------------------ lib/core/secrets/app_secrets.dart -----------------------
+
+< app_secrets.dart >
+
 class AppSecrets {
   static const supabasUrl = 'https://pybfozmoikwuzzlzkbtw.supabase.co';
   static const supabasAnonKey =
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5YmZvem1vaWt3dXp6bHprYnR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzM4MjgxNTAsImV4cCI6MjA0OTQwNDE1MH0.HAruvCT62LaqEiPcDTyaI4uie9K7OZGNk9n19URRSEc';
 }
------------------------ lib/core/theme/app_pallete.dart -----------------------
+
+
+
+< pick_image.dart >
+
+import 'dart:io';
+
+import 'package:image_picker/image_picker.dart';
+
+Future<File?> pickImage() async {
+  try {
+    final xFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (xFile != null) {
+      return File(xFile.path);
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
+
+
+< show_snackbar.dart >
+
+import 'package:flutter/material.dart';
+
+void showSnackBar(BuildContext context, String content) {
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(content: Text(content)));
+}
+
+
+
+< app_user_state.dart >
+
+part of 'app_user_cubit.dart';
+
+@immutable
+sealed class AppUserState {}
+
+final class AppUserInitial extends AppUserState {}
+
+final class AppUserLoggedIn extends AppUserState{
+  final MyUser user;
+
+  AppUserLoggedIn(this.user);
+}
+
+
+< app_user_cubit.dart >
+
+
+import 'package:clean/core/common/entities/my_user.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+
+part 'app_user_state.dart';
+
+class AppUserCubit extends Cubit<AppUserState> {
+  AppUserCubit() : super(AppUserInitial());
+
+  void updateUser(MyUser? user){ 
+    if(user == null){ 
+      emit(AppUserInitial());
+    }else{ 
+      emit(AppUserLoggedIn(user)); 
+    }
+  }
+}
+
+
+
+< loader.dart >
+
+import 'package:flutter/material.dart';
+
+class Loader extends StatelessWidget {
+  const Loader({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: CircularProgressIndicator(),
+    );
+  }
+}
+
+
+
+< my_user.dart >
+
+class MyUser {
+  final String id;
+  final String name;
+  final String email;
+
+  MyUser({required this.id, required this.name, required this.email});
+}
+
+
+
+< app_pallete.dart >
+
 import 'package:flutter/material.dart';
 
 class AppPallete {
@@ -17,14 +124,18 @@ class AppPallete {
   static const Color greyColor = Colors.grey;
   static const Color errorColor = Colors.redAccent;
   static const Color transparentColor = Colors.transparent;
-}----------------------- lib/core/theme/theme.dart -----------------------
+}
+
+
+< theme.dart >
+
 // ignore_for_file: prefer_const_constructors
 
 import 'package:clean/core/theme/app_pallete.dart';
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  static OutlineInputBorder border(Color color) => OutlineInputBorder(
+  static OutlineInputBorder _border(Color color) => OutlineInputBorder(
         borderSide: BorderSide(
           color: color,
           width: 3,
@@ -33,105 +144,206 @@ class AppTheme {
       );
 
   static final darkThemeMode = ThemeData.dark().copyWith(
-    scaffoldBackgroundColor: AppPallete.backgroundColor,
-    appBarTheme: AppBarTheme(backgroundColor: AppPallete.backgroundColor),
-    inputDecorationTheme: InputDecorationTheme(
-      contentPadding: EdgeInsets.all(27),
-      focusedBorder: border(AppPallete.gradient1),
-      enabledBorder: border(AppPallete.borderColor),
-    ),
-  );
+      scaffoldBackgroundColor: AppPallete.backgroundColor,
+      appBarTheme: AppBarTheme(backgroundColor: AppPallete.backgroundColor),
+      inputDecorationTheme: InputDecorationTheme(
+        contentPadding: EdgeInsets.all(27),
+        border: _border(AppPallete.borderColor),
+        focusedBorder: _border(AppPallete.gradient1),
+        enabledBorder: _border(AppPallete.borderColor),
+        errorBorder: _border(AppPallete.errorColor),
+      ),
+      chipTheme: ChipThemeData(
+        color: WidgetStatePropertyAll(AppPallete.backgroundColor),
+        side: BorderSide.none,
+      ));
 }
------------------------ lib/core/usecase/usecase.dart -----------------------
+
+
+
+< usecase.dart >
+
 import 'package:clean/core/error/failures.dart';
 import 'package:fpdart/fpdart.dart';
 
 abstract interface class UseCase<SuccessType, Params> {
-Future<Either<Failure, SuccessType>> call(Params params); 
+  Future<Either<Failure, SuccessType>> call(Params params);
+}
 
-}----------------------- lib/core/error/exception.dart -----------------------
+class NoParams {}
+
+
+
+< exception.dart >
+
 class ServerException implements Exception {
   final String error;
 
   ServerException(this.error);
 }
------------------------ lib/core/error/failures.dart -----------------------
+
+
+
+< failures.dart >
+
 class Failure {
   final String error;
 
   Failure(this.error);
 }
------------------------ lib/features/auth/data/repository/auth_repository_impl.dart -----------------------
+
+
+
+< auth_repository_impl.dart >
+
 import 'package:clean/core/error/exception.dart';
 import 'package:clean/core/error/failures.dart';
 import 'package:clean/features/auth/data/data_sources/auth_remote_data_source.dart';
+import 'package:clean/core/common/entities/my_user.dart';
 import 'package:clean/features/auth/domain/repository/auth_repository.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource remoteDataSource;
 
-  AuthRepositoryImpl({required this.remoteDataSource});
+  AuthRepositoryImpl(this.remoteDataSource);
 
   @override
-  Future<Either<Failure, String>> signInWithEmailAndPassword({
+  Future<Either<Failure, MyUser>> signInWithEmailAndPassword({
     required String email,
     required String password,
-  }) {
-    // TODO: implement signInWithEmailAndPassword
-    throw UnimplementedError();
+  }) async {
+    return _getUser(
+      () async => await remoteDataSource.signInWithEmailAndPassword(
+        password: password,
+        email: email,
+      ),
+    );
   }
 
   @override
-  Future<Either<Failure, String>> signUpWithEmailAndPassword({
+  Future<Either<Failure, MyUser>> signUpWithEmailAndPassword({
     required String name,
     required String email,
     required String password,
   }) async {
-    try {
-      final userId = await remoteDataSource.signUpWithEmailAndPassword(
+    return _getUser(
+      () async => await remoteDataSource.signUpWithEmailAndPassword(
         name: name,
         password: password,
         email: email,
-      );
-      return right(userId);
+      ),
+    );
+  }
+
+  Future<Either<Failure, MyUser>> _getUser(Future<MyUser> Function() fn) async {
+    try {
+      final user = await fn();
+      return right(user);
+    } on AuthException catch (e) {
+      return left(Failure(e.message));
+    } on ServerException catch (e) {
+      return left(Failure(e.error));
+    }
+  }
+
+  @override
+  Future<Either<Failure, MyUser>> currentUser() async {
+    try {
+      final user = await remoteDataSource.getCurrentUserData();
+      if (user == null) {
+        return left(Failure("User not Logged in"));
+      }
+      return right(user);
     } on ServerException catch (e) {
       return left(Failure(e.error));
     }
   }
 }
------------------------ lib/features/auth/data/data_sources/auth_remote_data_source.dart -----------------------
+
+
+
+< my_user_model.dart >
+
+import 'package:clean/core/common/entities/my_user.dart';
+
+class MyUserModel extends MyUser {
+  MyUserModel({
+    required super.id,
+    required super.name,
+    required super.email,
+  });
+
+  factory MyUserModel.fromJson(Map<String, dynamic> map) {
+    return MyUserModel(
+      id: map['id'] ?? '',
+      name: map['name'] ?? '',
+      email: map['email'] ?? '',
+    );
+  }
+
+  MyUserModel copyWith({
+    String? id,
+    String? name,
+    String? email,
+  }) =>
+      MyUserModel(
+          id: id ?? this.id,
+          name: name ?? this.name,
+          email: email ?? this.email);
+}
+
+
+
+< auth_remote_data_source.dart >
+
 import 'package:clean/core/error/exception.dart';
+import 'package:clean/features/auth/data/models/my_user_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 abstract interface class AuthRemoteDataSource {
-  Future<String> signUpWithEmailAndPassword({
+  Session? get currentUserSession;
+  Future<MyUserModel> signUpWithEmailAndPassword({
     required String name,
     required String password,
     required String email,
   });
-  Future<String> signInWithEmailAndPassword({
+  Future<MyUserModel> signInWithEmailAndPassword({
     required String password,
     required String email,
   });
+  Future<MyUserModel?> getCurrentUserData();
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final SupabaseClient supabaseClient;
 
-  AuthRemoteDataSourceImpl({required this.supabaseClient});
+  AuthRemoteDataSourceImpl(this.supabaseClient);
 
   @override
-  Future<String> signInWithEmailAndPassword({
+  Future<MyUserModel> signInWithEmailAndPassword({
     required String password,
     required String email,
-  }) {
-    // TODO: implement logInWithEmailAndPassword
-    throw UnimplementedError();
+  }) async {
+    try {
+      final response = await supabaseClient.auth.signInWithPassword(
+        password: password,
+        email: email,
+      );
+
+      if (response.user == null) {
+        throw ServerException('User is Null');
+      }
+
+      return MyUserModel.fromJson(response.user!.toJson()).copyWith(email: currentUserSession!.user.email);
+    } catch (e) {
+      throw ServerException(e.toString());
+    }
   }
 
   @override
-  Future<String> signUpWithEmailAndPassword({
+  Future<MyUserModel> signUpWithEmailAndPassword({
     required String name,
     required String password,
     required String email,
@@ -146,40 +358,73 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       if (response.user == null) {
         throw ServerException('User is Null');
       }
-      return response.user!.id;
+
+      return MyUserModel.fromJson(response.user!.toJson()).copyWith(email: currentUserSession!.user.email);
     } catch (e) {
       throw ServerException(e.toString());
     }
   }
+
+  @override
+
+  Session? get currentUserSession => supabaseClient.auth.currentSession;
+
+  @override
+  Future<MyUserModel?> getCurrentUserData() async {
+    try {
+      if (currentUserSession != null) {
+        final userData = await supabaseClient
+            .from('profiles')
+            .select()
+            .eq('id', currentUserSession!.user.id);
+        return MyUserModel.fromJson(userData.first)
+            .copyWith(email: currentUserSession!.user.email);
+      }
+      return null;
+    } catch (e) {
+      throw (ServerException(e.toString()));
+    }
+  }
 }
------------------------ lib/features/auth/domain/repository/auth_repository.dart -----------------------
+
+
+
+< auth_repository.dart >
+
 import 'package:clean/core/error/failures.dart';
+import 'package:clean/core/common/entities/my_user.dart';
 import 'package:fpdart/fpdart.dart';
 
 abstract interface class AuthRepository {
-  Future<Either<Failure, String>> signUpWithEmailAndPassword({
+  Future<Either<Failure, MyUser>> signUpWithEmailAndPassword({
     required String name,
     required String email,
     required String password,
   });
-  Future<Either<Failure, String>> signInWithEmailAndPassword({
+  Future<Either<Failure, MyUser>> signInWithEmailAndPassword({
     required String email,
     required String password,
   });
+  Future<Either<Failure, MyUser>> currentUser();
 }
------------------------ lib/features/auth/domain/usecase/user_sign_up.dart -----------------------
+
+
+
+< user_sign_up.dart >
+
 import 'package:clean/core/error/failures.dart';
 import 'package:clean/core/usecase/usecase.dart';
+import 'package:clean/core/common/entities/my_user.dart';
 import 'package:clean/features/auth/domain/repository/auth_repository.dart';
 import 'package:fpdart/fpdart.dart';
 
-class UserSignUp implements UseCase<String, UserSignUpParams> {
+class UserSignUp implements UseCase<MyUser, UserSignUpParams> {
   final AuthRepository authRepository;
 
-  UserSignUp({required this.authRepository});
+  UserSignUp(this.authRepository);
 
   @override
-  Future<Either<Failure, String>> call(UserSignUpParams params) async {
+  Future<Either<Failure, MyUser>> call(UserSignUpParams params) async {
     return await authRepository.signUpWithEmailAndPassword(
       name: params.name,
       email: params.email,
@@ -187,7 +432,7 @@ class UserSignUp implements UseCase<String, UserSignUpParams> {
     );
   }
 }
- 
+
 class UserSignUpParams {
   final String email;
   final String name;
@@ -199,7 +444,67 @@ class UserSignUpParams {
     required this.password,
   });
 }
------------------------ lib/features/auth/presentation/pages/signup_page.dart -----------------------
+
+
+
+< user_sign_in.dart >
+
+import 'package:clean/core/error/failures.dart';
+import 'package:clean/core/usecase/usecase.dart';
+import 'package:clean/core/common/entities/my_user.dart';
+import 'package:clean/features/auth/domain/repository/auth_repository.dart';
+import 'package:fpdart/fpdart.dart';
+
+class UserSignIn implements UseCase<MyUser, UserSignInParams> {
+  final AuthRepository authRepository;
+
+  UserSignIn(this.authRepository);
+
+  @override
+  Future<Either<Failure, MyUser>> call(UserSignInParams params) async {
+    return await authRepository.signInWithEmailAndPassword(
+      email: params.email,
+      password: params.password,
+    );
+  }
+}
+
+class UserSignInParams {
+  final String email;
+  final String password;
+
+  UserSignInParams({
+    required this.email,
+    required this.password,
+  });
+}
+
+
+
+< current_user.dart >
+
+import 'package:clean/core/error/failures.dart';
+import 'package:clean/core/usecase/usecase.dart';
+import 'package:clean/core/common/entities/my_user.dart';
+import 'package:clean/features/auth/domain/repository/auth_repository.dart';
+import 'package:fpdart/fpdart.dart';
+
+
+class CurrentUser implements UseCase<MyUser, NoParams> {
+  final AuthRepository authRepository;
+  CurrentUser(this.authRepository);
+  @override
+  Future<Either<Failure, MyUser>> call(NoParams params) async {
+    return await authRepository.currentUser();
+  }
+}
+
+
+
+< signup_page.dart >
+
+import 'package:clean/core/common/widgets/loader.dart';
+import 'package:clean/core/utils/show_snackbar.dart';
 import 'package:clean/core/theme/app_pallete.dart';
 import 'package:clean/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:clean/features/auth/presentation/widgets/auth_field.dart';
@@ -234,82 +539,113 @@ class _SignUpPageState extends State<SignUpPage> {
       appBar: AppBar(),
       body: Padding(
         padding: const EdgeInsets.all(15.0),
-        child: Form(
-          key: formKey,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text(
-                'Sign up.',
-                style: TextStyle(
-                  fontSize: 50,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 30),
-              AuthField(
-                hintText: 'Name',
-                controller: nameController,
-              ),
-              const SizedBox(height: 15),
-              AuthField(
-                hintText: 'Email',
-                controller: emailController,
-              ),
-              const SizedBox(height: 15),
-              AuthField(
-                hintText: 'Password',
-                controller: passwordController,
-                obscureText: true,
-              ),
-              const SizedBox(height: 20),
-              AuthGradientButton(
-                buttonText: 'Sign up',
-                onPressed: () {
-                  context.read<AuthBloc>().add(AuthSignUp(
-                        email: emailController.text,
-                        name: nameController.text,
-                        password: passwordController.text,
-                      ));
-                },
-              ),
-              const SizedBox(
-                height: 20,
-              ),
-              GestureDetector(
-                onTap: () {
-                  Navigator.pop(context);
-                },
-                child: RichText(
-                  text: TextSpan(
-                    text: 'Already  have an account? ',
-                    style: Theme.of(context).textTheme.titleMedium,
-                    children: [
-                      TextSpan(
-                        text: 'Sign in',
-                        style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
+        child: BlocConsumer<AuthBloc, AuthState>(
+          listener: (context, state) {
+            switch (state) {
+              case AuthInitial():
+                break;
+              case AuthLoading():
+                break;
+              case AuthSuccess():
+                break;
+              case AuthFailure():
+                showSnackBar(context, state.error);
+                break;
+            }
+          },
+          builder: (context, state) {
+            if (state is AuthLoading) {
+              return const Loader();
+            }
+
+            return Form(
+              key: formKey,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    'Sign up.',
+                    style: TextStyle(
+                      fontSize: 50,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  AuthField(
+                    hintText: 'Name',
+                    controller: nameController,
+                  ),
+                  const SizedBox(height: 15),
+                  AuthField(
+                    hintText: 'Email',
+                    controller: emailController,
+                  ),
+                  const SizedBox(height: 15),
+                  AuthField(
+                    hintText: 'Password',
+                    controller: passwordController,
+                    obscureText: true,
+                  ),
+                  const SizedBox(height: 20),
+                  AuthGradientButton(
+                    buttonText: 'Sign up',
+                    onPressed: () {
+                      context.read<AuthBloc>().add(AuthSignUp(
+                            email: emailController.text,
+                            name: nameController.text,
+                            password: passwordController.text,
+                          ));
+                    },
+                  ),
+                  const SizedBox(
+                    height: 20,
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context);
+                    },
+                    child: RichText(
+                      text: TextSpan(
+                        text: 'Already  have an account? ',
+                        style: Theme.of(context).textTheme.titleMedium,
+                        children: [
+                          TextSpan(
+                            text: 'Sign in',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
                                   color: AppPallete.gradient1,
                                   fontWeight: FontWeight.bold,
                                 ),
-                      )
-                    ],
+                          )
+                        ],
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
   }
 }
------------------------ lib/features/auth/presentation/pages/signin_page.dart -----------------------
+
+
+
+< signin_page.dart >
+
+import 'package:clean/core/common/widgets/loader.dart';
+import 'package:clean/core/utils/show_snackbar.dart';
 import 'package:clean/core/theme/app_pallete.dart';
+import 'package:clean/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:clean/features/auth/presentation/pages/signup_page.dart';
 import 'package:clean/features/auth/presentation/widgets/auth_field.dart';
 import 'package:clean/features/auth/presentation/widgets/auth_gradient_button.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class SignInPage extends StatefulWidget {
   const SignInPage({super.key});
@@ -335,65 +671,99 @@ class _SignInPageState extends State<SignInPage> {
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.all(15.0),
-        child: Form(
-          key: formKey,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text(
-                'Sign in.',
-                style: TextStyle(
-                  fontSize: 50,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              AuthField(
-                hintText: 'Email',
-                controller: emailController,
-              ),
-              const SizedBox(height: 15),
-              AuthField(
-                hintText: 'Password',
-                controller: passwordController,
-                obscureText: true,
-              ),
-              const SizedBox(height: 20),
-              AuthGradientButton(
-                buttonText: 'Sign in',
-                onPressed: () {},
-              ),
-              const SizedBox(
-                height: 20,
-              ),
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(context, SignUpPage.route());
-                },
-                child: RichText(
-                  text: TextSpan(
-                    text: 'Don\'t have an account? ',
-                    style: Theme.of(context).textTheme.titleMedium,
-                    children: [
-                      TextSpan(
-                        text: 'Sign up',
-                        style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
+        child: BlocConsumer<AuthBloc, AuthState>(
+          listener: (context, state) {
+            switch (state) {
+              case AuthInitial():
+                break;
+              case AuthLoading():
+                break;
+              case AuthSuccess():
+                break;
+              case AuthFailure():
+                showSnackBar(context, state.error);
+                break;
+            }
+          },
+          builder: (context, state) {
+            if (state is AuthLoading) {
+              return const Loader();
+            }
+
+            return Form(
+              key: formKey,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    'Sign in.',
+                    style: TextStyle(
+                      fontSize: 50,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  AuthField(
+                    hintText: 'Email',
+                    controller: emailController,
+                  ),
+                  const SizedBox(height: 15),
+                  AuthField(
+                    hintText: 'Password',
+                    controller: passwordController,
+                    obscureText: true,
+                  ),
+                  const SizedBox(height: 20),
+                  AuthGradientButton(
+                    buttonText: 'Sign in',
+                    onPressed: () {
+                      context.read<AuthBloc>().add(
+                            AuthSignIn(
+                              email: emailController.text,
+                              password: passwordController.text,
+                            ),
+                          );
+                    },
+                  ),
+                  const SizedBox(
+                    height: 20,
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(context, SignUpPage.route());
+                    },
+                    child: RichText(
+                      text: TextSpan(
+                        text: 'Don\'t have an account? ',
+                        style: Theme.of(context).textTheme.titleMedium,
+                        children: [
+                          TextSpan(
+                            text: 'Sign up',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
                                   color: AppPallete.gradient1,
                                   fontWeight: FontWeight.bold,
                                 ),
-                      )
-                    ],
+                          )
+                        ],
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
   }
 }
------------------------ lib/features/auth/presentation/widgets/auth_gradient_button.dart -----------------------
+
+
+
+< auth_gradient_button.dart >
+
 import 'package:clean/core/theme/app_pallete.dart';
 import 'package:flutter/material.dart';
 
@@ -434,7 +804,11 @@ class AuthGradientButton extends StatelessWidget {
     );
   }
 }
------------------------ lib/features/auth/presentation/widgets/auth_field.dart -----------------------
+
+
+
+< auth_field.dart >
+
 import 'package:flutter/material.dart';
 
 class AuthField extends StatelessWidget {
@@ -458,7 +832,11 @@ class AuthField extends StatelessWidget {
     );
   }
 }
------------------------ lib/features/auth/presentation/bloc/auth_event.dart -----------------------
+
+
+
+< auth_event.dart >
+
 part of 'auth_bloc.dart';
 
 @immutable
@@ -475,7 +853,27 @@ class AuthSignUp extends AuthEvent {
     required this.password,
   });
 }
------------------------ lib/features/auth/presentation/bloc/auth_bloc.dart -----------------------
+
+class AuthSignIn extends AuthEvent {
+  final String email;
+  final String password;
+
+  AuthSignIn({
+    required this.email,
+    required this.password,
+  });
+}
+
+class AuthIsUserSignedIn extends AuthEvent {}
+
+
+< auth_bloc.dart >
+
+import 'package:clean/core/common/cubits/app_user/app_user_cubit.dart';
+import 'package:clean/core/usecase/usecase.dart';
+import 'package:clean/core/common/entities/my_user.dart';
+import 'package:clean/features/auth/domain/usecase/current_user.dart';
+import 'package:clean/features/auth/domain/usecase/user_sign_in.dart';
 import 'package:clean/features/auth/domain/usecase/user_sign_up.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -485,27 +883,83 @@ part 'auth_state.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final UserSignUp _userSignUp;
+  final UserSignIn _userSignIn;
+  final CurrentUser _currentUser;
+  final AppUserCubit _appUserCubit;
 
-  AuthBloc({required UserSignUp userSignUp})
+  AuthBloc(
+      {required UserSignUp userSignUp,
+      required UserSignIn userSignIn,
+      required CurrentUser currentUser,
+      required AppUserCubit appUserCubit})
       : _userSignUp = userSignUp,
+        _userSignIn = userSignIn,
+        _currentUser = currentUser,
+        _appUserCubit = appUserCubit,
         super(AuthInitial()) {
-    on<AuthSignUp>((event, emit) async {
-      final res = await _userSignUp(
-        UserSignUpParams(
-          email: event.email,
-          name: event.name,
-          password: event.password,
-        ),
-      );
+    on<AuthEvent>((_,emit) => emit(AuthLoading()));
+    on<AuthSignUp>(_onAuthSignUp);
+    on<AuthSignIn>(_onAuthSignIn);
+    on<AuthIsUserSignedIn>(_onAuthIsUserSignedIn);
+  }
 
-      res.fold(
-        (l) => emit(AuthFailure(l.error)),
-        (r) => emit(AuthSuccess(r)),
-      );
-    });
+  void _onAuthSignUp(
+    AuthSignUp event,
+    Emitter<AuthState> emit,
+  ) async {
+    final res = await _userSignUp(
+      UserSignUpParams(
+        email: event.email,
+        name: event.name,
+        password: event.password,
+      ),
+    );
+
+    res.fold(
+      (l) => emit(AuthFailure(l.error)),
+      (r) => _emitAuthSuccess(r, emit),
+    );
+  }
+
+  void _onAuthSignIn(
+    AuthSignIn event,
+    Emitter<AuthState> emit,
+  ) async {
+    final res = await _userSignIn(
+      UserSignInParams(
+        email: event.email,
+        password: event.password,
+      ),
+    );
+
+    res.fold(
+      (l) => emit(AuthFailure(l.error)),
+      (r) => _emitAuthSuccess(r, emit),
+    );
+  }
+
+  void _onAuthIsUserSignedIn(
+    AuthIsUserSignedIn event,
+    Emitter<AuthState> emit,
+  ) async {
+    final res = await _currentUser(NoParams());
+
+    res.fold(
+      (l) => emit(AuthFailure(l.error)),
+      (r) => _emitAuthSuccess(r, emit),
+    );
+  }
+
+  void _emitAuthSuccess(MyUser user, Emitter<AuthState> emit) {
+    _appUserCubit.updateUser(user);
+    emit(AuthSuccess(user));
   }
 }
------------------------ lib/features/auth/presentation/bloc/auth_state.dart -----------------------
+
+
+
+< auth_state.dart >
+
 part of 'auth_bloc.dart';
 
 @immutable
@@ -516,49 +970,650 @@ final class AuthInitial extends AuthState {}
 final class AuthLoading extends AuthState {}
 
 final class AuthSuccess extends AuthState {
-  final String uId;
+  final MyUser user;
 
-  AuthSuccess(this.uId);
+  AuthSuccess(this.user);
 }
 
 final class AuthFailure extends AuthState {
-  final String message;
+  final String error;
 
-  AuthFailure(this.message);
+  AuthFailure(this.error);
 }
------------------------ lib/main.dart -----------------------
-import 'package:clean/core/secrets/app_secrets.dart';
-import 'package:clean/core/theme/theme.dart';
-import 'package:clean/features/auth/data/data_sources/auth_remote_data_source.dart';
-import 'package:clean/features/auth/data/repository/auth_repository_impl.dart';
-import 'package:clean/features/auth/domain/usecase/user_sign_up.dart';
-import 'package:clean/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:clean/features/auth/presentation/pages/signin_page.dart';
+
+
+
+< blog_repository_impl.dart >
+
+import 'dart:io';
+
+import 'package:clean/core/error/exception.dart';
+import 'package:clean/core/error/failures.dart';
+import 'package:clean/features/blog/data/data_sources/blog_remote_data_source.dart';
+import 'package:clean/features/blog/data/models/blog_model.dart';
+import 'package:clean/features/blog/domain/entities/blog.dart';
+import 'package:clean/features/blog/domain/repositories/blog_repository.dart';
+import 'package:fpdart/fpdart.dart';
+import 'package:uuid/uuid.dart';
+
+class BlogRepositoryImpl implements BlogRepository {
+  final BlogRemoteDataSource blogRemoteDataSource;
+
+  BlogRepositoryImpl(this.blogRemoteDataSource);
+
+  @override
+  Future<Either<Failure, Blog>> uploadBlog({
+    required File image,
+    required String title,
+    required String content,
+    required String posterId,
+    required List<String> topics,
+  }) async {
+    try {
+      BlogModel blogModel = BlogModel(
+        id: const Uuid().v1(),
+        poster_id: posterId,
+        title: title,
+        content: content,
+        image_url: '',
+        topics: topics,
+        updated_at: DateTime.now(),
+      );
+
+      final imageUrl = await blogRemoteDataSource.uploadBlogImage(blog: blogModel, image: image);
+
+      blogModel = blogModel.copyWith(image_url: imageUrl); 
+
+      final uploadedBlog = await blogRemoteDataSource.uploadBlog(blogModel);
+
+      return right(uploadedBlog);
+
+    } on ServerException catch (e) {
+      return left(Failure(e.toString()));
+    }
+  }
+}
+
+
+
+< blog_model.dart >
+
+// ignore_for_file: non_constant_identifier_names
+
+import 'package:clean/features/blog/domain/entities/blog.dart';
+
+class BlogModel extends Blog {
+  BlogModel({
+    required super.id,
+    required super.poster_id,
+    required super.title,
+    required super.content,
+    required super.image_url,
+    required super.topics,
+    required super.updated_at,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'poster_id': poster_id,
+        'title': title,
+        'content': content,
+        'imageUrl': image_url,
+        'topics': topics,
+        'updatedAt': updated_at.toIso8601String(),
+      };
+
+  factory BlogModel.fromJson(Map<String, dynamic> map) => BlogModel(
+        id: map['id'] as String,
+        poster_id: map['poster_id'] as String,
+        title: map['title'] as String,
+        content: map['content'] as String,
+        image_url: map['image_url'] as String,
+        topics: List<String>.from(map['topics'] as List<String>),
+        updated_at: map['updated_at'] == null
+            ? DateTime.now()
+            : DateTime.parse(map['updated_at']),
+      );
+
+  BlogModel copyWith({
+    String? id,
+    String? poster_id,
+    String? title,
+    String? content,
+    String? image_url,
+    List<String>? topics,
+    DateTime? updated_at,
+  }) {
+    return BlogModel(
+      id: id ?? this.id,
+      poster_id: poster_id ?? this.poster_id,
+      title: title ?? this.title,
+      content: content ?? this.content,
+      image_url: image_url ?? this.image_url,
+      topics: topics ?? this.topics,
+      updated_at: updated_at ?? this.updated_at,
+    );
+  }
+}
+
+
+
+< blog_remote_data_source.dart >
+
+import 'dart:io';
+
+import 'package:clean/core/error/exception.dart';
+import 'package:clean/features/blog/data/models/blog_model.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+abstract interface class BlogRemoteDataSource {
+  Future<BlogModel> uploadBlog(BlogModel blog);
+  Future<String> uploadBlogImage(
+      {required BlogModel blog, required File image});
+}
+
+class BlogRemoteDataSourceImpl extends BlogRemoteDataSource {
+  final SupabaseClient supabaseClient;
+
+  BlogRemoteDataSourceImpl(this.supabaseClient);
+
+  @override
+  Future<BlogModel> uploadBlog(BlogModel blog) async {
+    try {
+      final blogData =
+          await supabaseClient.from('blogs').insert(blog.toJson()).select();
+
+      return BlogModel.fromJson(blogData.first);
+    } catch (e) {
+      throw ServerException(e.toString());
+    }
+  }
+
+  @override
+  Future<String> uploadBlogImage(
+      {required BlogModel blog, required File image}) async {
+    try {
+      await supabaseClient.storage.from('blog_images').upload(blog.id, image);
+
+      return supabaseClient.storage.from('blog_images').getPublicUrl(blog.id);
+    } catch (e) {
+      throw ServerException(e.toString());
+    }
+  }
+}
+
+
+
+< blog_repository.dart >
+
+import 'dart:io';
+import 'package:clean/core/error/failures.dart';
+import 'package:clean/features/blog/domain/entities/blog.dart';
+import 'package:fpdart/fpdart.dart';
+
+abstract interface class BlogRepository {
+  Future<Either<Failure, Blog>> uploadBlog({
+    required File image,
+    required String title,
+    required String content,
+    required String posterId,
+    required List<String> topics,
+  });
+}
+
+
+
+< upload_blog.dart >
+
+import 'dart:io';
+
+import 'package:clean/core/error/failures.dart';
+import 'package:clean/core/usecase/usecase.dart';
+import 'package:clean/features/blog/domain/entities/blog.dart';
+import 'package:clean/features/blog/domain/repositories/blog_repository.dart';
+import 'package:fpdart/fpdart.dart';
+
+class UploadBlog implements UseCase<Blog, UploadBlogParams> {
+  final BlogRepository blogRepository;
+
+  UploadBlog(this.blogRepository);
+
+  @override
+  Future<Either<Failure, Blog>> call(UploadBlogParams params) async {
+    return await blogRepository.uploadBlog(
+      image: params.image,
+      title: params.title,
+      content: params.content,
+      posterId: params.posterId,
+      topics: params.topics,
+    );
+  }
+}
+
+class UploadBlogParams {
+  final String posterId;
+  final String title;
+  final String content;
+  final File image;
+  final List<String> topics;
+
+  UploadBlogParams(
+      {required this.posterId,
+      required this.title,
+      required this.content,
+      required this.image,
+      required this.topics});
+}
+
+
+
+< blog.dart >
+
+// ignore_for_file: non_constant_identifier_names
+
+class Blog {
+  final String id;
+  final String poster_id;
+  final String title;
+  final String content;
+  final String image_url;
+  final List<String> topics;
+  final DateTime updated_at;
+
+  Blog({
+    required this.id,
+    required this.poster_id,
+    required this.title,
+    required this.content,
+    required this.image_url,
+    required this.topics,
+    required this.updated_at,
+  });
+}
+
+
+
+< add_new_blog_page.dart >
+
+import 'dart:io';
+
+import 'package:clean/core/common/cubits/app_user/app_user_cubit.dart';
+import 'package:clean/core/common/widgets/loader.dart';
+import 'package:clean/core/theme/app_pallete.dart';
+import 'package:clean/core/utils/pick_image.dart';
+import 'package:clean/core/utils/show_snackbar.dart';
+import 'package:clean/features/blog/presentation/bloc/blog_bloc.dart';
+import 'package:clean/features/blog/presentation/pages/blog_page.dart';
+import 'package:clean/features/blog/presentation/widgets/blog_editor.dart';
+import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+
+class AddNewBlogPage extends StatefulWidget {
+  static route() =>
+      MaterialPageRoute(builder: (contextp) => const AddNewBlogPage());
+  const AddNewBlogPage({super.key});
+
+  @override
+  State<AddNewBlogPage> createState() => _AddNewBlogPageState();
+}
+
+class _AddNewBlogPageState extends State<AddNewBlogPage> {
+  final titleController = TextEditingController();
+  final contentController = TextEditingController();
+  final formKey = GlobalKey<FormState>();
+  List<String> selectedTopics = [];
+  File? image;
+
+  void selectImage() async {
+    final pickedImage = await pickImage();
+    if (pickedImage != null) {
+      setState(() {
+        image = pickedImage;
+      });
+    }
+  }
+
+  void uploadBlog() {
+    if (formKey.currentState!.validate() &&
+        selectedTopics.isNotEmpty &&
+        image != null) {
+      final posterId =
+          (context.read<AppUserCubit>().state as AppUserLoggedIn).user.id;
+      context.read<BlogBloc>().add(BlogUpload(
+            posterId: posterId,
+            title: titleController.text.trim(),
+            content: contentController.text.trim(),
+            image: image!,
+            topics: selectedTopics,
+          ));
+    }
+  }
+
+  @override
+  void dispose() {
+    titleController.dispose();
+    contentController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        actions: [
+          IconButton(
+            onPressed: () => uploadBlog(),
+            icon: const Icon(Icons.done_rounded),
+          ),
+        ],
+      ),
+      body: BlocConsumer<BlogBloc, BlogState>(
+        listener: (context, state) {
+          switch (state) {
+            case BlogInitial():
+              break;
+            case BlogLoading():
+              break;
+            case BlogSuccess():
+              Navigator.pushAndRemoveUntil(
+                context,
+                BlogPage.route(),
+                (route) => false,
+              );
+              break;
+            case BlogFailure():
+              showSnackBar(context, state.error);
+              break;
+          }
+        },
+        builder: (context, state) {
+          if (state is BlogLoading) {
+            return const Loader();
+          }
+
+          return SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Form(
+                key: formKey,
+                child: Column(
+                  children: [
+                    image != null
+                        ? GestureDetector(
+                            onTap: () {
+                              selectImage();
+                            },
+                            child: SizedBox(
+                                height: 150,
+                                width: double.infinity,
+                                child: Image.file(
+                                  image!,
+                                  fit: BoxFit.cover,
+                                )),
+                          )
+                        : GestureDetector(
+                            onTap: () {
+                              selectImage();
+                            },
+                            child: DottedBorder(
+                              color: AppPallete.borderColor,
+                              dashPattern: const [15, 4],
+                              radius: const Radius.circular(10),
+                              borderType: BorderType.RRect,
+                              child: const SizedBox(
+                                height: 150,
+                                width: double.infinity,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.folder_open, size: 40),
+                                    SizedBox(
+                                      height: 15,
+                                    ),
+                                    Text(
+                                      "Select your image",
+                                      style: TextStyle(fontSize: 15),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                    const SizedBox(
+                      height: 20,
+                    ),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          'Technology',
+                          'Business',
+                          'Programming',
+                          'Entertainment',
+                        ]
+                            .map(
+                              (e) => Padding(
+                                padding: const EdgeInsets.all(5.0),
+                                child: GestureDetector(
+                                  onTap: () {
+                                    if (selectedTopics.contains(e)) {
+                                      selectedTopics.remove(e);
+                                    } else {
+                                      selectedTopics.add(e);
+                                    }
+                                    setState(() {});
+                                  },
+                                  child: Chip(
+                                    label: Text(e),
+                                    color: selectedTopics.contains(e)
+                                        ? const WidgetStatePropertyAll(
+                                            AppPallete.gradient1)
+                                        : null,
+                                    side: const BorderSide(
+                                        color: AppPallete.backgroundColor),
+                                  ),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ),
+                    const SizedBox(
+                      height: 10,
+                    ),
+                    BlogEditor(
+                      controller: titleController,
+                      hintText: 'Blog Title',
+                    ),
+                    const SizedBox(
+                      height: 10,
+                    ),
+                    BlogEditor(
+                      controller: contentController,
+                      hintText: 'Blog Content',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+
+
+< blog_page.dart >
+
+import 'package:clean/features/blog/presentation/pages/add_new_blog_page.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+
+class BlogPage extends StatelessWidget {
+   static route() => MaterialPageRoute(builder: (context) => const BlogPage());
+
+  const BlogPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Blog App"),
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.push(context, AddNewBlogPage.route());
+            },
+            icon: const Icon(CupertinoIcons.add_circled),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+
+< blog_editor.dart >
+
+import 'package:flutter/material.dart';
+
+class BlogEditor extends StatelessWidget {
+  final TextEditingController controller;
+  final String? hintText;
+
+  const BlogEditor({super.key, required this.controller, this.hintText});
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      decoration: InputDecoration(
+        hintText: hintText,
+      ),
+      maxLines: null,
+      validator: (value) {
+        if(value!.isEmpty){ 
+          return '$hintText is empty';
+        }
+        return null; 
+      },
+    );
+  }
+}
+
+
+< blog_state.dart >
+
+part of 'blog_bloc.dart';
+
+@immutable
+sealed class BlogState {}
+
+final class BlogInitial extends BlogState {}
+final class BlogLoading extends BlogState {}
+final class BlogSuccess extends BlogState {}
+final class BlogFailure extends BlogState {
+  final String error;
+
+  BlogFailure(this.error); 
+  
+}
+
+
+
+< blog_event.dart >
+
+part of 'blog_bloc.dart';
+
+@immutable
+sealed class BlogEvent {}
+
+final class BlogUpload extends BlogEvent {
+  final String posterId;
+  final String title;
+  final String content;
+  final File image;
+  final List<String> topics;
+
+  BlogUpload({
+    required this.posterId,
+    required this.title,
+    required this.content,
+    required this.image,
+    required this.topics,
+  });
+}
+
+
+
+< blog_bloc.dart >
+
+import 'dart:io';
+
+import 'package:clean/features/blog/domain/usecases/upload_blog.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+part 'blog_event.dart';
+part 'blog_state.dart';
+
+class BlogBloc extends Bloc<BlogEvent, BlogState> {
+  final UploadBlog uploadBlog;
+
+  BlogBloc(this.uploadBlog) : super(BlogInitial()) {
+    on<BlogEvent>((event, emit) => emit(BlogLoading()));
+    on<BlogUpload>(_onBlogUpload);
+  }
+
+  void _onBlogUpload(BlogUpload event, Emitter<BlogState> emit) async {
+    final res = await uploadBlog(UploadBlogParams(
+      posterId: event.posterId,
+      title: event.title,
+      content: event.content,
+      image: event.image,
+      topics: event.topics,
+    ));
+
+    res.fold(
+      (l) => emit(BlogFailure(l.error)),
+      (r) => emit(BlogSuccess()),
+    );
+  }
+}
+
+
+
+< main.dart >
+
+import 'package:clean/core/common/cubits/app_user/app_user_cubit.dart';
+import 'package:clean/core/theme/theme.dart';
+import 'package:clean/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:clean/features/auth/presentation/pages/signin_page.dart';
+import 'package:clean/features/blog/presentation/bloc/blog_bloc.dart';
+import 'package:clean/features/blog/presentation/pages/blog_page.dart';
+import 'package:clean/init_dependencies.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    final supabase = await Supabase.initialize(
-      anonKey: AppSecrets.supabasAnonKey,
-      url: AppSecrets.supabasUrl,
-    );
+  await initDependencies();
 
+  try {
     runApp(
       MultiBlocProvider(
         providers: [
           BlocProvider(
-            create: (_) => AuthBloc(
-              userSignUp: UserSignUp(
-                authRepository: AuthRepositoryImpl(
-                  remoteDataSource: AuthRemoteDataSourceImpl(
-                    supabaseClient: supabase.client,
-                  ),
-                ),
-              ),
-            ),
+            create: (_) => serviceLocator<AuthBloc>(),
+          ),
+          BlocProvider(
+            create: (_) => serviceLocator<AppUserCubit>(),
+          ),
+          BlocProvider(
+            create: (_) => serviceLocator<BlogBloc>(),
           ),
         ],
         child: const MyApp(),
@@ -569,8 +1624,20 @@ void main() async {
   }
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+  
+    super.initState();
+    context.read<AuthBloc>().add(AuthIsUserSignedIn());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -578,7 +1645,122 @@ class MyApp extends StatelessWidget {
       title: 'Flutter Demo',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkThemeMode,
-      home: const SignInPage(),
+      home: BlocSelector<AppUserCubit, AppUserState, bool>(
+        selector: (state) {
+          return state is AppUserLoggedIn;
+        },
+        builder: (context, isLoggedIn) {
+          if (isLoggedIn) {
+            return const BlogPage();
+          }
+          return const SignInPage();
+        },
+      ),
     );
   }
+}
+
+
+
+< init_dependencies.dart >
+
+import 'package:clean/core/common/cubits/app_user/app_user_cubit.dart';
+import 'package:clean/core/secrets/app_secrets.dart';
+import 'package:clean/features/auth/data/data_sources/auth_remote_data_source.dart';
+import 'package:clean/features/auth/data/repository/auth_repository_impl.dart';
+import 'package:clean/features/auth/domain/repository/auth_repository.dart';
+import 'package:clean/features/auth/domain/usecase/current_user.dart';
+import 'package:clean/features/auth/domain/usecase/user_sign_in.dart';
+import 'package:clean/features/auth/domain/usecase/user_sign_up.dart';
+import 'package:clean/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:clean/features/blog/data/data_sources/blog_remote_data_source.dart';
+import 'package:clean/features/blog/data/repositories/blog_repository_impl.dart';
+import 'package:clean/features/blog/domain/repositories/blog_repository.dart';
+import 'package:clean/features/blog/domain/usecases/upload_blog.dart';
+import 'package:clean/features/blog/presentation/bloc/blog_bloc.dart';
+import 'package:get_it/get_it.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+final serviceLocator = GetIt.instance;
+
+Future<void> initDependencies() async {
+  _initAuth();
+  _initBlog();
+  final supabase = await Supabase.initialize(
+    anonKey: AppSecrets.supabasAnonKey,
+    url: AppSecrets.supabasUrl,
+  );
+
+  serviceLocator.registerLazySingleton(() => supabase.client);
+  //core
+  serviceLocator.registerLazySingleton(() => AppUserCubit());
+}
+
+void _initAuth() {
+  serviceLocator.registerFactory<AuthRemoteDataSource>(
+    () => AuthRemoteDataSourceImpl(
+      serviceLocator(),
+    ),
+  );
+
+  serviceLocator.registerFactory<AuthRepository>(
+    () => AuthRepositoryImpl(
+      serviceLocator(),
+    ),
+  );
+
+  serviceLocator.registerFactory(
+    () => UserSignUp(
+      serviceLocator(),
+    ),
+  );
+
+  serviceLocator.registerFactory(
+    () => UserSignIn(
+      serviceLocator(),
+    ),
+  );
+
+  serviceLocator.registerFactory(
+    () => CurrentUser(
+      serviceLocator(),
+    ),
+  );
+
+  serviceLocator.registerLazySingleton(
+    () => AuthBloc(
+      userSignUp: serviceLocator(),
+      userSignIn: serviceLocator(),
+      currentUser: serviceLocator(),
+      appUserCubit: serviceLocator(),
+    ),
+  );
+}
+
+void _initBlog() {
+  serviceLocator.registerFactory<BlogRemoteDataSource>(
+    () => BlogRemoteDataSourceImpl(
+      serviceLocator(),
+    ),
+  );
+
+  serviceLocator.registerFactory<BlogRepository>(
+    () => BlogRepositoryImpl(
+      serviceLocator(),
+    ),
+  );
+
+  serviceLocator.registerFactory(
+    () => UploadBlog(
+      serviceLocator(),
+    ),
+  );
+
+  serviceLocator.registerLazySingleton(
+    () => BlogBloc(
+      serviceLocator(),
+    ),
+  );
+
+  
 }
