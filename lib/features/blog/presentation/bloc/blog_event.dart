@@ -8,13 +8,13 @@ final class BlogUpload extends BlogEvent {
   final String title;
   final String content;
   final File image;
-  final List<String> topics;
+  final List<String> topic;
 
   BlogUpload({
     required this.posterId,
     required this.title,
     required this.content,
     required this.image,
-    required this.topics,
+    required this.topic,
   });
 }

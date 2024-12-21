@@ -1021,15 +1021,14 @@ class BlogRepositoryImpl implements BlogRepository {
       );
 
       final imageUrl = await blogRemoteDataSource.uploadBlogImage(blog: blogModel, image: image);
-
       blogModel = blogModel.copyWith(image_url: imageUrl); 
-
+      print('image uploaded blog repo impl');
       final uploadedBlog = await blogRemoteDataSource.uploadBlog(blogModel);
+      print('uploaded blog repo impl');
 
       return right(uploadedBlog);
-
     } on ServerException catch (e) {
-      return left(Failure(e.toString()));
+      return left(Failure("${e}blog repo impl"));
     }
   }
 }
@@ -1053,14 +1052,14 @@ class BlogModel extends Blog {
     required super.updated_at,
   });
 
-  Map<String, dynamic> toJson() => {
+  Map<String, dynamic> toJson() => <String, dynamic>{
         'id': id,
         'poster_id': poster_id,
         'title': title,
         'content': content,
-        'imageUrl': image_url,
-        'topics': topics,
-        'updatedAt': updated_at.toIso8601String(),
+        'image_url': image_url,
+        'topics': topics.isEmpty ? null : topics,
+        'updated_at': updated_at.toIso8601String(),
       };
 
   factory BlogModel.fromJson(Map<String, dynamic> map) => BlogModel(
@@ -1120,12 +1119,14 @@ class BlogRemoteDataSourceImpl extends BlogRemoteDataSource {
   @override
   Future<BlogModel> uploadBlog(BlogModel blog) async {
     try {
+      print('trying to upload blog remote data impl');
       final blogData =
           await supabaseClient.from('blogs').insert(blog.toJson()).select();
+      print('uploaded blog remote data impl');
 
       return BlogModel.fromJson(blogData.first);
     } catch (e) {
-      throw ServerException(e.toString());
+      throw ServerException("${e}blog remote data impl");
     }
   }
 
@@ -1764,3 +1765,5 @@ void _initBlog() {
 
   
 }
+
+

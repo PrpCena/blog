@@ -20,7 +20,7 @@ class BlogBloc extends Bloc<BlogEvent, BlogState> {
       title: event.title,
       content: event.content,
       image: event.image,
-      topics: event.topics,
+      topic: event.topic,
     ));
 
     res.fold(

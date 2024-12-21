@@ -20,7 +20,7 @@ class BlogRepositoryImpl implements BlogRepository {
     required String title,
     required String content,
     required String posterId,
-    required List<String> topics,
+    required List<String> topic,
   }) async {
     try {
       BlogModel blogModel = BlogModel(
@@ -29,20 +29,18 @@ class BlogRepositoryImpl implements BlogRepository {
         title: title,
         content: content,
         image_url: '',
-        topics: topics,
+        topic: topic,
         updated_at: DateTime.now(),
       );
 
-      final imageUrl = await blogRemoteDataSource.uploadBlogImage(blog: blogModel, image: image);
-
-      blogModel = blogModel.copyWith(image_url: imageUrl); 
-
+      final imageUrl = await blogRemoteDataSource.uploadBlogImage(
+          blog: blogModel, image: image);
+      blogModel = blogModel.copyWith(image_url: imageUrl);
       final uploadedBlog = await blogRemoteDataSource.uploadBlog(blogModel);
 
       return right(uploadedBlog);
-
     } on ServerException catch (e) {
-      return left(Failure(e.toString()));
+      return left(Failure("${e.error}blog repo impl"));
     }
   }
 }

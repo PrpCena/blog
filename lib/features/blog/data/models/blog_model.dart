@@ -9,18 +9,18 @@ class BlogModel extends Blog {
     required super.title,
     required super.content,
     required super.image_url,
-    required super.topics,
+    required super.topic,
     required super.updated_at,
   });
 
-  Map<String, dynamic> toJson() => {
+  Map<String, dynamic> toJson() => <String, dynamic>{
         'id': id,
         'poster_id': poster_id,
         'title': title,
         'content': content,
-        'imageUrl': image_url,
-        'topics': topics,
-        'updatedAt': updated_at.toIso8601String(),
+        'image_url': image_url,
+        'topic': topic.isEmpty ? null : topic,
+        'updated_at': updated_at.toIso8601String(),
       };
 
   factory BlogModel.fromJson(Map<String, dynamic> map) => BlogModel(
@@ -29,7 +29,9 @@ class BlogModel extends Blog {
         title: map['title'] as String,
         content: map['content'] as String,
         image_url: map['image_url'] as String,
-        topics: List<String>.from(map['topics'] as List<String>),
+        topic: map['topic'] != null
+            ? (map['topic'] as List<dynamic>).map((e) => e.toString()).toList()
+            : [],
         updated_at: map['updated_at'] == null
             ? DateTime.now()
             : DateTime.parse(map['updated_at']),
@@ -50,7 +52,7 @@ class BlogModel extends Blog {
       title: title ?? this.title,
       content: content ?? this.content,
       image_url: image_url ?? this.image_url,
-      topics: topics ?? this.topics,
+      topic: topic,
       updated_at: updated_at ?? this.updated_at,
     );
   }
