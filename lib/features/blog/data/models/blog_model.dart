@@ -3,15 +3,15 @@
 import 'package:clean/features/blog/domain/entities/blog.dart';
 
 class BlogModel extends Blog {
-  BlogModel({
-    required super.id,
-    required super.poster_id,
-    required super.title,
-    required super.content,
-    required super.image_url,
-    required super.topic,
-    required super.updated_at,
-  });
+  BlogModel(
+      {required super.id,
+      required super.poster_id,
+      required super.title,
+      required super.content,
+      required super.image_url,
+      required super.topic,
+      required super.updated_at,
+      super.posterName});
 
   Map<String, dynamic> toJson() => <String, dynamic>{
         'id': id,
@@ -45,6 +45,7 @@ class BlogModel extends Blog {
     String? image_url,
     List<String>? topics,
     DateTime? updated_at,
+    String? posterName,
   }) {
     return BlogModel(
       id: id ?? this.id,
@@ -54,6 +55,7 @@ class BlogModel extends Blog {
       image_url: image_url ?? this.image_url,
       topic: topic,
       updated_at: updated_at ?? this.updated_at,
+      posterName: posterName ?? this.posterName, 
     );
   }
 }

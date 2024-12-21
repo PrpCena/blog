@@ -78,7 +78,7 @@ class _AddNewBlogPageState extends State<AddNewBlogPage> {
               break;
             case BlogLoading():
               break;
-            case BlogSuccess():
+            case BlogUploadSuccess():
               Navigator.pushAndRemoveUntil(
                 context,
                 BlogPage.route(),
@@ -87,6 +87,8 @@ class _AddNewBlogPageState extends State<AddNewBlogPage> {
               break;
             case BlogFailure():
               showSnackBar(context, state.error);
+              break;
+            case BlogFetchSuccess():
               break;
           }
         },
@@ -108,12 +110,13 @@ class _AddNewBlogPageState extends State<AddNewBlogPage> {
                               selectImage();
                             },
                             child: SizedBox(
-                                height: 150,
-                                width: double.infinity,
-                                child: Image.file(
-                                  image!,
-                                  fit: BoxFit.cover,
-                                )),
+                              height: 150,
+                              width: double.infinity,
+                              child: Image.file(
+                                image!,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
                           )
                         : GestureDetector(
                             onTap: () {

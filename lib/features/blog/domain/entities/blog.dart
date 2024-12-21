@@ -8,6 +8,7 @@ class Blog {
   final String image_url;
   final List<String> topic;
   final DateTime updated_at;
+  final String? posterName;
 
   Blog({
     required this.id,
@@ -17,5 +18,6 @@ class Blog {
     required this.image_url,
     required this.topic,
     required this.updated_at,
+    this.posterName,
   });
 }

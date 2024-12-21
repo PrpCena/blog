@@ -13,17 +13,19 @@ class AppTheme {
       );
 
   static final darkThemeMode = ThemeData.dark().copyWith(
-      scaffoldBackgroundColor: AppPallete.backgroundColor,
-      appBarTheme: AppBarTheme(backgroundColor: AppPallete.backgroundColor),
-      inputDecorationTheme: InputDecorationTheme(
-        contentPadding: EdgeInsets.all(27),
-        border: _border(AppPallete.borderColor),
-        focusedBorder: _border(AppPallete.gradient1),
-        enabledBorder: _border(AppPallete.borderColor),
-        errorBorder: _border(AppPallete.errorColor),
-      ),
-      chipTheme: ChipThemeData(
-        color: WidgetStatePropertyAll(AppPallete.backgroundColor),
-        side: BorderSide.none,
-      ));
+    scaffoldBackgroundColor: AppPallete.backgroundColor,
+    appBarTheme: AppBarTheme(backgroundColor: AppPallete.backgroundColor),
+    inputDecorationTheme: InputDecorationTheme(
+      contentPadding: EdgeInsets.all(27),
+      border: _border(AppPallete.borderColor),
+      focusedBorder: _border(AppPallete.gradient1),
+      enabledBorder: _border(AppPallete.borderColor),
+      errorBorder: _border(AppPallete.errorColor),
+    ),
+    chipTheme: ChipThemeData(
+      
+      color: WidgetStatePropertyAll(AppPallete.backgroundColor),
+      side: BorderSide.none,
+    ),
+  );
 }
