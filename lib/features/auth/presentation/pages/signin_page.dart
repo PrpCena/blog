@@ -5,6 +5,7 @@ import 'package:clean/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:clean/features/auth/presentation/pages/signup_page.dart';
 import 'package:clean/features/auth/presentation/widgets/auth_field.dart';
 import 'package:clean/features/auth/presentation/widgets/auth_gradient_button.dart';
+import 'package:clean/features/blog/presentation/pages/blog_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -40,6 +41,8 @@ class _SignInPageState extends State<SignInPage> {
               case AuthLoading():
                 break;
               case AuthSuccess():
+                Navigator.pushAndRemoveUntil(
+                    context, BlogPage.route(), (route) => false);
                 break;
               case AuthFailure():
                 showSnackBar(context, state.error);

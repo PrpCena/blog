@@ -1,4 +1,3 @@
-import 'package:clean/core/theme/app_pallete.dart';
 import 'package:clean/features/blog/domain/entities/blog.dart';
 import 'package:clean/features/blog/presentation/pages/blog_view_page.dart';
 import 'package:flutter/material.dart';
