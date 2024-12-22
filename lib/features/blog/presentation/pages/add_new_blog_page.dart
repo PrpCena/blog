@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:clean/core/common/constants/constant.dart';
 import 'package:clean/core/common/cubits/app_user/app_user_cubit.dart';
 import 'package:clean/core/common/widgets/loader.dart';
 import 'package:clean/core/theme/app_pallete.dart';
@@ -152,12 +153,7 @@ class _AddNewBlogPageState extends State<AddNewBlogPage> {
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
-                        children: [
-                          'Technology',
-                          'Business',
-                          'Programming',
-                          'Entertainment',
-                        ]
+                        children: Constant.topics
                             .map(
                               (e) => Padding(
                                 padding: const EdgeInsets.all(5.0),

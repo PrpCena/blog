@@ -7,7 +7,6 @@ import 'package:clean/core/common/entities/my_user.dart';
 import 'package:clean/features/auth/data/models/my_user_model.dart';
 import 'package:clean/features/auth/domain/repository/auth_repository.dart';
 import 'package:fpdart/fpdart.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource remoteDataSource;
@@ -51,8 +50,6 @@ class AuthRepositoryImpl implements AuthRepository {
 
       final user = await fn();
       return right(user);
-    } on AuthException catch (e) {
-      return left(Failure(e.message));
     } on ServerException catch (e) {
       return left(Failure(e.error));
     }
