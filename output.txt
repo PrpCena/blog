@@ -336,6 +336,16 @@ class AuthRepositoryImpl implements AuthRepository {
       return left(Failure(e.error));
     }
   }
+
+  @override
+  Future<Either<Failure, void>> signOut() async {
+    try {
+      final res = await remoteDataSource.signOut();
+      return right(res);
+    } on ServerException catch (e) {
+      return left(Failure(e.error));
+    }
+  }
 }
 
 
@@ -390,6 +400,7 @@ abstract interface class AuthRemoteDataSource {
     required String email,
   });
   Future<MyUserModel?> getCurrentUserData();
+  Future<void> signOut();
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -466,6 +477,17 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       throw (ServerException(e.toString()));
     }
   }
+
+  @override
+  Future<void> signOut() async {
+    try {
+      await supabaseClient.auth.signOut();
+    } on AuthException catch (e) {
+      throw ServerException(e.message);
+    } catch (e) {
+      throw (ServerException(e.toString()));
+    }
+  }
 }
 
 
@@ -487,6 +509,26 @@ abstract interface class AuthRepository {
     required String password,
   });
   Future<Either<Failure, MyUser>> currentUser();
+  Future<Either<Failure, void>> signOut();
+}
+
+
+
+< user_sign_out.dart >
+
+import 'package:clean/core/error/failures.dart';
+import 'package:clean/core/usecase/usecase.dart';
+import 'package:clean/features/auth/domain/repository/auth_repository.dart';
+import 'package:fpdart/fpdart.dart';
+
+class UserSignOut implements UseCase<void, NoParams> {
+  final AuthRepository authRepository;
+
+  UserSignOut(this.authRepository);
+  @override
+  Future<Either<Failure, void>> call(NoParams params) async {
+    return await authRepository.signOut();
+  }
 }
 
 
@@ -953,14 +995,20 @@ class AuthSignIn extends AuthEvent {
 
 class AuthIsUserSignedIn extends AuthEvent {}
 
+class AuthSignOut extends AuthEvent {}
+
+
 
 < auth_bloc.dart >
+
+import 'dart:async';
 
 import 'package:clean/core/common/cubits/app_user/app_user_cubit.dart';
 import 'package:clean/core/usecase/usecase.dart';
 import 'package:clean/core/common/entities/my_user.dart';
 import 'package:clean/features/auth/domain/usecase/current_user.dart';
 import 'package:clean/features/auth/domain/usecase/user_sign_in.dart';
+import 'package:clean/features/auth/domain/usecase/user_sign_out.dart';
 import 'package:clean/features/auth/domain/usecase/user_sign_up.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -971,22 +1019,26 @@ part 'auth_state.dart';
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final UserSignUp _userSignUp;
   final UserSignIn _userSignIn;
+  final UserSignOut _userSignOut;
   final CurrentUser _currentUser;
   final AppUserCubit _appUserCubit;
 
   AuthBloc(
       {required UserSignUp userSignUp,
       required UserSignIn userSignIn,
+      required UserSignOut userSignOut,
       required CurrentUser currentUser,
       required AppUserCubit appUserCubit})
       : _userSignUp = userSignUp,
         _userSignIn = userSignIn,
+        _userSignOut = userSignOut,
         _currentUser = currentUser,
         _appUserCubit = appUserCubit,
         super(AuthInitial()) {
-    on<AuthEvent>((_,emit) => emit(AuthLoading()));
+    on<AuthEvent>((_, emit) => emit(AuthLoading()));
     on<AuthSignUp>(_onAuthSignUp);
     on<AuthSignIn>(_onAuthSignIn);
+    on<AuthSignOut>(_onAuthSignOut);
     on<AuthIsUserSignedIn>(_onAuthIsUserSignedIn);
   }
 
@@ -1037,9 +1089,24 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
-  void _emitAuthSuccess(MyUser user, Emitter<AuthState> emit) {
+  void _emitAuthSuccess(
+    MyUser user,
+    Emitter<AuthState> emit,
+  ) {
     _appUserCubit.updateUser(user);
     emit(AuthSuccess(user));
+  }
+
+  FutureOr<void> _onAuthSignOut(
+    AuthSignOut event,
+    Emitter<AuthState> emit,
+  ) async {
+    final res = await _userSignOut(NoParams());
+
+    res.fold(
+      (l) => emit(AuthFailure(l.error)),
+      (r) => emit(AuthInitial()),
+    );
   }
 }
 
@@ -1731,6 +1798,7 @@ class _AddNewBlogPageState extends State<AddNewBlogPage> {
 import 'package:clean/core/common/widgets/loader.dart';
 import 'package:clean/core/theme/app_pallete.dart';
 import 'package:clean/core/utils/show_snackbar.dart';
+import 'package:clean/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:clean/features/blog/presentation/bloc/blog_bloc.dart';
 import 'package:clean/features/blog/presentation/pages/add_new_blog_page.dart';
 import 'package:clean/features/blog/presentation/widgets/blog_card.dart';
@@ -1759,6 +1827,13 @@ class _BlogPageState extends State<BlogPage> {
     return Scaffold(
         appBar: AppBar(
           title: const Text("Blog App"),
+          leading: IconButton(
+              onPressed: () {
+                context.read<AuthBloc>().add(AuthSignOut());
+              },
+              icon: const Icon(
+                Icons.logout_rounded,
+              )),
           actions: [
             IconButton(
               onPressed: () {
@@ -2102,6 +2177,7 @@ import 'package:clean/features/auth/data/repository/auth_repository_impl.dart';
 import 'package:clean/features/auth/domain/repository/auth_repository.dart';
 import 'package:clean/features/auth/domain/usecase/current_user.dart';
 import 'package:clean/features/auth/domain/usecase/user_sign_in.dart';
+import 'package:clean/features/auth/domain/usecase/user_sign_out.dart';
 import 'package:clean/features/auth/domain/usecase/user_sign_up.dart';
 import 'package:clean/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:clean/features/blog/data/data_sources/blog_local_data_source.dart';
@@ -2165,6 +2241,12 @@ void _initAuth() {
   );
 
   serviceLocator.registerFactory(
+    () => UserSignOut(
+      serviceLocator(),
+    ),
+  );
+
+  serviceLocator.registerFactory(
     () => CurrentUser(
       serviceLocator(),
     ),
@@ -2176,6 +2258,7 @@ void _initAuth() {
       userSignIn: serviceLocator(),
       currentUser: serviceLocator(),
       appUserCubit: serviceLocator(),
+      userSignOut: serviceLocator(),
     ),
   );
 }

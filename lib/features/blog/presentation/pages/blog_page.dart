@@ -1,6 +1,8 @@
 import 'package:clean/core/common/widgets/loader.dart';
 import 'package:clean/core/theme/app_pallete.dart';
 import 'package:clean/core/utils/show_snackbar.dart';
+import 'package:clean/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:clean/features/auth/presentation/pages/signin_page.dart';
 import 'package:clean/features/blog/presentation/bloc/blog_bloc.dart';
 import 'package:clean/features/blog/presentation/pages/add_new_blog_page.dart';
 import 'package:clean/features/blog/presentation/widgets/blog_card.dart';
@@ -26,53 +28,80 @@ class _BlogPageState extends State<BlogPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: AppBar(
-          title: const Text("Blog App"),
-          actions: [
-            IconButton(
-              onPressed: () {
-                Navigator.push(context, AddNewBlogPage.route());
-              },
-              icon: const Icon(CupertinoIcons.add_circled),
-            ),
-          ],
-        ),
-        body: BlocConsumer<BlogBloc, BlogState>(
-          listener: (context, state) {
-            switch (state) {
-              case BlogInitial():
-                break;
-              case BlogLoading():
-                break;
-              case BlogUploadSuccess():
-                break;
-              case BlogFetchSuccess():
-                break;
-              case BlogFailure():
-                showSnackBar(context, state.error);
-                break;
-            }
-          },
-          builder: (context, state) {
-            if (state is BlogFetchSuccess) {
-              return ListView.builder(
-                itemCount: state.blogs.length,
-                itemBuilder: (context, idx) {
-                  return BlogCard(
-                    blog: state.blogs[idx],
-                    color: idx % 3 == 0
-                        ? AppPallete.gradient1
-                        : idx % 3 == 1
-                            ? AppPallete.gradient2
-                            : AppPallete.gradient3,
-                  );
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) {
+        switch (state) {
+          case AuthInitial():
+            Navigator.pushAndRemoveUntil(
+              context,
+              SignInPage.route(),
+              (route) => false,
+            );
+            break;
+          case AuthLoading():
+            break;
+          case AuthSuccess():
+            break;
+          case AuthFailure():
+            showSnackBar(context, state.error);
+            break;
+        }
+      },
+      child: Scaffold(
+          appBar: AppBar(
+            title: const Text("Blog App"),
+            leading: IconButton(
+                onPressed: () {
+                  context.read<AuthBloc>().add(AuthSignOut());
                 },
-              );
-            }
+                icon: const Icon(
+                  Icons.logout_rounded,
+                )),
+            actions: [
+              IconButton(
+                onPressed: () {
+                  Navigator.push(context, AddNewBlogPage.route());
+                },
+                icon: const Icon(CupertinoIcons.add_circled),
+              ),
+            ],
+          ),
+          body: BlocConsumer<BlogBloc, BlogState>(
+            listener: (context, state) {
+              switch (state) {
+                case BlogInitial():
+                  break;
+                case BlogLoading():
+                  break;
+                case BlogUploadSuccess():
+                  break;
+                case BlogFetchSuccess():
+                  break;
+                case BlogFailure():
+                  showSnackBar(context, state.error);
+                  break;
+              }
+            },
+            builder: (context, state) {
+              if (state is BlogFetchSuccess) {
+                return ListView.builder(
+                  itemCount: state.blogs.length,
+                  itemBuilder: (context, idx) {
+                    return BlogCard(
+                      blog: state.blogs[idx],
+                      color: idx % 3 == 0
+                          ? AppPallete.gradient1
+                          : idx % 3 == 1
+                              ? AppPallete.gradient2
+                              : AppPallete.gradient3,
+                    );
+                  },
+                );
+              }
 
-            return const Loader();
-          },
-        ));
+              return const Loader();
+            },
+          )),
+    );
   }
 }
